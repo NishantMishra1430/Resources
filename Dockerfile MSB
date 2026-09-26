@@ -1,0 +1,57 @@
+# What is Docker Multi Stage Build ?
+# Building of Docker stage in multiple build stage is known as Docker Multi Stage Build
+# Stage 1: AS Build
+# Stage 2: Run the app with only runtime dependencies
+
+
+# Why we use Docker Multi Stage Build ?
+# 1 --> To keep image size small
+# 2 --> To increase security (No secret files, No build tools, No dev dependencies)
+# 3 --> To make dockerfile clean and professional
+
+
+# When to USE ? (MOST IMPORTANT)
+# App which cannot run directly needs converter, compiled. (npm run src/index.ts)
+# App has native modules (bcrypt, sharp, etc) like that,
+# Production image > 200MB
+
+
+
+# stage 1: build
+
+# BASE IMAGE for heavy tools and dependencies
+FROM node:18 AS builder
+
+# Sets a Working Directory inside image
+WORKDIR /app
+
+# Copies the whole dependencies and heavy tool from local to cd
+COPY package*.json ./
+
+# installs dependencies and tools
+RUN npm install
+
+# Copying the rest of tools from local
+COPY . .
+
+# stage 2: Production
+
+# Now, we are using a lightweight image only for creating a runtime env
+FROM node:18-alpine
+
+# This image also needs a working directory
+WORKDIR /app
+
+# Copies the all major runtime dependencies from builder stage to cd
+COPY --from=builder /app /app
+
+# Exposing app on PORT 3000
+EXPOSE 3000
+
+# Default command for Execution
+CMD ["node", "app.js"]
+
+
+
+# RUN COMMAND: docker build -t <img-name> PATH
+# example: docker build -t backend-img .
